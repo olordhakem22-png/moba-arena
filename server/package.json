@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "tsx --tsconfig tsconfig.json src/index.ts",
-    "build": "tsc -p tsconfig.json && mv dist/server/src dist/server-dist 2>/dev/null || true",
-    "start": "node dist/server-dist/index.js",
+    "start": "npx tsx src/index.ts",
+    "build": "npx tsc",
     "lint": "eslint src --ext ts --report-unused-disable-directives --max-warnings 0",
     "db:migrate": "prisma migrate dev --schema=../database/prisma/schema.prisma",
     "db:push": "prisma db push --schema=../database/prisma/schema.prisma",
