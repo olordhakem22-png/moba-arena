@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx --tsconfig tsconfig.json src/index.ts",
-    "start": "npx tsx src/index.ts",
+    "start": "npx prisma generate && npx tsx src/index.ts",
     "build": "npx tsc",
     "lint": "eslint src --ext ts --report-unused-disable-directives --max-warnings 0",
     "db:migrate": "prisma migrate dev --schema=../database/prisma/schema.prisma",
