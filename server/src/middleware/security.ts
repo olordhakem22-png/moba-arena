@@ -6,6 +6,14 @@ import type { Express } from 'express';
 import { config } from '../config/index.js';
 
 export function securityMiddleware(app: Express) {
+  // Allow Railway domains
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:8080',
+    config.cors.origin,
+    'https://client-production-1614.up.railway.app',
+  ];
+
   // Security headers
   app.use(helmet({
     contentSecurityPolicy: {
@@ -15,7 +23,11 @@ export function securityMiddleware(app: Express) {
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https:"],
         scriptSrc: ["'self'"],
-        connectSrc: ["'self'", `ws://localhost:${config.port}`, `http://localhost:${config.port}`],
+        connectSrc: ["'self'", 
+          `ws://localhost:${config.port}`, `http://localhost:${config.port}`,
+          'https://api-server-production-633b.up.railway.app',
+          'wss://api-server-production-633b.up.railway.app'
+        ],
         frameSrc: ["'none'"],
       },
     },
@@ -23,7 +35,7 @@ export function securityMiddleware(app: Express) {
 
   // CORS
   app.use(cors({
-    origin: config.cors.origin,
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
