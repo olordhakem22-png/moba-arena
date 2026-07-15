@@ -12,4 +12,4 @@ COPY . .
 
 EXPOSE 4000
 
-CMD ["sh", "-c", "npx prisma db push && npx tsx ../database/prisma/seed.ts && npx tsx src/index.ts"]
+CMD ["sh", "-c", "npx prisma db push && npx tsx database/prisma/seed.ts && npx tsx src/index.ts"]
