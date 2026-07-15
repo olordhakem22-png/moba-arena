@@ -52,9 +52,28 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
     // --- MATCHMAKING ---
     socket.on('queue:join', (data: { queueType: string; role: string; championId: string }) => {
-      gameManager.removeFromQueue(socket.user.userId);
       socket.join('matchmaking');
       socket.emit('queue:joined', { status: 'searching' });
+
+      // DEBUG: Auto-create game for testing (in production, implement real matchmaking)
+      setTimeout(() => {
+        const players = [{
+          userId: socket.user.userId,
+          team: 'blue' as const,
+          championId: data.championId,
+          slot: 1,
+        }];
+
+        const game = gameManager.createGame(players, data.queueType as 'classic' | 'ranked' | 'custom');
+        const gameId = game.id;
+
+        // Add bot opponent for non-ranked
+        if (data.queueType !== 'ranked') {
+          // TODO: Add bot player
+        }
+
+        io.to('matchmaking').emit('queue:matched', { gameId });
+      }, 3000); // Start game after 3 seconds
     });
 
     socket.on('queue:cancel', () => {

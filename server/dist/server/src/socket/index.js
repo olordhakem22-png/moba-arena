@@ -46,9 +46,24 @@ function setupSocketIO(httpServer) {
         });
         // --- MATCHMAKING ---
         socket.on('queue:join', (data) => {
-            GameManager_1.gameManager.removeFromQueue(socket.user.userId);
             socket.join('matchmaking');
             socket.emit('queue:joined', { status: 'searching' });
+            // DEBUG: Auto-create game for testing (in production, implement real matchmaking)
+            setTimeout(() => {
+                const players = [{
+                        userId: socket.user.userId,
+                        team: 'blue',
+                        championId: data.championId,
+                        slot: 1,
+                    }];
+                const game = GameManager_1.gameManager.createGame(players, data.queueType);
+                const gameId = game.id;
+                // Add bot opponent for non-ranked
+                if (data.queueType !== 'ranked') {
+                    // TODO: Add bot player
+                }
+                io.to('matchmaking').emit('queue:matched', { gameId });
+            }, 3000); // Start game after 3 seconds
         });
         socket.on('queue:cancel', () => {
             GameManager_1.gameManager.removeFromQueue(socket.user.userId);

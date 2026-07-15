@@ -29,7 +29,8 @@ function securityMiddleware(app) {
                 connectSrc: ["'self'",
                     `ws://localhost:${index_js_1.config.port}`, `http://localhost:${index_js_1.config.port}`,
                     'https://api-server-production-633b.up.railway.app',
-                    'wss://api-server-production-633b.up.railway.app'
+                    'wss://api-server-production-633b.up.railway.app',
+                    'https://client-production-1614.up.railway.app'
                 ],
                 frameSrc: ["'none'"],
             },
