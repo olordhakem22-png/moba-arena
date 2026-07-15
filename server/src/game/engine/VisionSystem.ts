@@ -1,8 +1,8 @@
 /**
  * VisionSystem - Fog of war, sight range, wards
  */
-import type { GameEntity, TeamSide, Vector2 } from '../../shared/src/types/game';
-import { GAME_CONSTANTS } from '../../shared/src/constants/game';
+import type { GameEntity, TeamSide, Vector2 } from '../../../shared/src/types/game';
+import { GAME_CONSTANTS } from '../../../shared/src/constants/game';
 import type { GameEngine } from './GameEngine';
 
 export class VisionSystem {

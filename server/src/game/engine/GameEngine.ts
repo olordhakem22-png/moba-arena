@@ -17,8 +17,8 @@ import type {
   GameEvent,
   MinionWaveConfig,
   Tower,
-} from '../../shared/src/types/game';
-import { GAME_CONSTANTS, MAP_CONFIG } from '../../shared/src/constants/game';
+} from '../../../shared/src/types/game';
+import { GAME_CONSTANTS, MAP_CONFIG } from '../../../shared/src/constants/game';
 import { Physics } from '../physics/Physics';
 import { CombatSystem } from './CombatSystem';
 import { AbilitySystem } from './AbilitySystem';
@@ -795,7 +795,7 @@ export class GameEngine extends EventEmitter {
     };
   }
 
-  private getDefaultStats(): import('../../shared/src/types/game').ComputedStats {
+  private getDefaultStats(): import('../../../shared/src/types/game').ComputedStats {
     return {
       health: 600, healthPerLevel: 85,
       mana: 400, manaPerLevel: 45,

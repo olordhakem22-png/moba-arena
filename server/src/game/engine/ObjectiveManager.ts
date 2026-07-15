@@ -1,8 +1,8 @@
 /**
  * ObjectiveManager - Dragons, Baron, Towers
  */
-import type { Objective, GameEntity } from '../../shared/src/types/game';
-import { GAME_CONSTANTS, MAP_CONFIG } from '../../shared/src/constants/game';
+import type { Objective, GameEntity } from '../../../shared/src/types/game';
+import { GAME_CONSTANTS, MAP_CONFIG } from '../../../shared/src/constants/game';
 import type { GameEngine } from './GameEngine';
 
 export class ObjectiveManager {

@@ -1,8 +1,8 @@
 /**
  * MinionManager - Spawning, pathing, aggro
  */
-import type { GameEntity, Vector2, MinionType } from '../../shared/src/types/game';
-import { GAME_CONSTANTS, MAP_CONFIG } from '../../shared/src/constants/game';
+import type { GameEntity, Vector2, MinionType } from '../../../shared/src/types/game';
+import { GAME_CONSTANTS, MAP_CONFIG } from '../../../shared/src/constants/game';
 import type { GameEngine } from './GameEngine';
 
 export class MinionManager {

@@ -2,10 +2,10 @@
  * AbilitySystem - Q/W/E/R abilities, cooldowns, effects
  */
 import { v4 as uuid } from 'uuid';
-import type { GameEntity, AbilityUse, Vector2, Projectile } from '../../shared/src/types/game';
-import type { AbilityEffect } from '../../shared/src/types/champion';
+import type { GameEntity, AbilityUse, Vector2, Projectile } from '../../../shared/src/types/game';
+import type { AbilityEffect } from '../../../shared/src/types/champion';
 import type { GameEngine } from './GameEngine';
-import { GAME_CONSTANTS } from '../../shared/src/constants/game';
+import { GAME_CONSTANTS } from '../../../shared/src/constants/game';
 
 export class AbilitySystem {
   private engine: GameEngine;

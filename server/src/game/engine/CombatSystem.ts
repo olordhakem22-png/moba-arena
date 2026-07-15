@@ -1,7 +1,7 @@
 /**
  * CombatSystem - Damage calculation, auto-attacks, on-hit effects
  */
-import type { GameEntity, DamageType } from '../../shared/src/types/game';
+import type { GameEntity, DamageType } from '../../../shared/src/types/game';
 import type { GameEngine } from './GameEngine';
 
 export class CombatSystem {

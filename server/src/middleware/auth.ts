@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/index';
 import { prisma } from '../config/database';
-import type { TokenPayload } from '../../shared/src/types/user';
+import type { TokenPayload } from '../../../shared/src/types/user';
 
 export interface AuthRequest extends Request {
   user?: TokenPayload;

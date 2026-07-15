@@ -7,8 +7,8 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config/index';
 import { gameManager } from '../game/managers/GameManager';
 import { logger } from '../utils/logger';
-import type { TokenPayload } from '../../shared/src/types/user';
-import type { PlayerInput, Vector2 } from '../../shared/src/types/game';
+import type { TokenPayload } from '../../../shared/src/types/user';
+import type { PlayerInput, Vector2 } from '../../../shared/src/types/game';
 
 export function setupSocketIO(httpServer: HTTPServer) {
   const io = new Server(httpServer, {

@@ -4,7 +4,7 @@
 import { v4 as uuid } from 'uuid';
 import { GameEngine } from '../engine/GameEngine';
 import { logger } from '../../utils/logger';
-import type { TeamSide } from '../../shared/src/types/game';
+import type { TeamSide } from '../../../shared/src/types/game';
 
 export class GameManager {
   private games: Map<string, GameEngine> = new Map();
