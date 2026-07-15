@@ -29,6 +29,17 @@ export default function App() {
   const { isAuthenticated, isLoading } = useAuthStore();
   const { connect } = useSocketStore();
 
+  // Safety timeout - if still loading after 10s, show login page
+  React.useEffect(() => {
+    const timeout = setTimeout(() => {
+      const state = useAuthStore.getState();
+      if (state.isLoading) {
+        useAuthStore.setState({ isLoading: false });
+      }
+    }, 10000);
+    return () => clearTimeout(timeout);
+  }, []);
+
   // Connect socket when authenticated
   React.useEffect(() => {
     if (isAuthenticated) {

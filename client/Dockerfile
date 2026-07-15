@@ -3,14 +3,11 @@ FROM node:20
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --omit=dev
 
-COPY . .
+COPY dist/ ./dist/
+COPY server.js ./
 
-RUN npm run build
+EXPOSE 8080
 
-RUN npm install -g serve
-
-EXPOSE 3000
-
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["node", "server.js"]
