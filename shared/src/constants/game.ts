@@ -227,6 +227,6 @@ export const RANK_THRESHOLDS = [
 
 export const RANK_DIVISIONS = [1, 2, 3, 4] as const;
 
-export const GAME_SERVER_URL = process.env.GAME_SERVER_URL || 'http://localhost:4000';
-export const GAME_WS_URL = process.env.GAME_WS_URL || 'ws://localhost:4000';
-export const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:4000/api';
+export const GAME_SERVER_URL = (typeof process !== 'undefined' && process.env?.GAME_SERVER_URL) || 'https://api-server-production-633b.up.railway.app';
+export const GAME_WS_URL = (typeof process !== 'undefined' && process.env?.GAME_WS_URL) || 'wss://api-server-production-633b.up.railway.app';
+export const API_BASE_URL = (typeof process !== 'undefined' && process.env?.API_BASE_URL) || 'https://api-server-production-633b.up.railway.app/api';
