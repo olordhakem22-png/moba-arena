@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:20
 
 WORKDIR /app
 
@@ -10,6 +10,8 @@ COPY database/prisma ./prisma
 RUN npx prisma generate
 
 COPY . .
+
+ENV DATABASE_URL=${DATABASE_URL}
 
 EXPOSE 4000
 
