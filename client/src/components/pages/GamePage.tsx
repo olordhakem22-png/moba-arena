@@ -15,27 +15,27 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!gameId || !isConnected) return;
+    if (!gameId || !isConnected || !socket) return;
 
     setGameId(gameId);
     setInGame(true);
 
     // Join the game room
-    (window as any).__socket?.emit('game:join', { gameId });
-    (window as any).__socket?.emit('game:ready');
+    socket.emit('game:join', { gameId });
+    socket.emit('game:ready');
 
     // Receive game state
-    (window as any).__socket?.on('game:joined', (data: { phase: string }) => {
+    socket.on('game:joined', (data: { phase: string }) => {
       setPhase(data.phase);
       setLoading(false);
     });
 
-    (window as any).__socket?.on('game:error', (data: { message: string }) => {
+    socket.on('game:error', (data: { message: string }) => {
       setError(data.message);
       setLoading(false);
     });
 
-    (window as any).__socket?.on('game:state', (state: any) => {
+    socket.on('game:state', (state: any) => {
       if (phaserRef.current) {
         const scene = phaserRef.current.scene.getScene('GameScene') as any;
         if (scene) {
@@ -44,7 +44,7 @@ export default function GamePage() {
       }
     });
 
-    (window as any).__socket?.on('game:ended', (data: { winner: string; duration: number }) => {
+    socket.on('game:ended', (data: { winner: string; duration: number }) => {
       setPhase('end');
       setTimeout(() => {
         setInGame(false);
