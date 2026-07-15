@@ -33,11 +33,12 @@ export default class GameScene extends Phaser.Scene {
 
     this.camera = this.cameras.main;
     this.camera.setBackgroundColor('#1a2a1a');
-    this.camera.setZoom(0.5);
-    this.camera.centerOn(MAP_CONFIG.centerX * 0.5, MAP_CONFIG.centerY * 0.5);
+    this.camera.setZoom(1);
+    this.camera.centerOn(400, 300); // Center of 800x600 view
     console.log('[GameScene] Camera setup done');
 
-    this.drawMap();
+    // Draw smaller, focused map
+    this.drawSmallMap();
     console.log('[GameScene] Map drawn');
     
     this.createMinimap();
@@ -58,6 +59,51 @@ export default class GameScene extends Phaser.Scene {
   // ==========================================
   // MAP RENDERING
   // ==========================================
+
+  private drawSmallMap() {
+    const graphics = this.add.graphics();
+    const width = 800;
+    const height = 600;
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    // Background - grass
+    graphics.fillStyle(0x1a3a1a, 1);
+    graphics.fillRect(0, 0, width, height);
+
+    // Grid
+    graphics.lineStyle(1, 0x2a4a2a, 0.3);
+    for (let x = 0; x <= width; x += 50) {
+      graphics.lineBetween(x, 0, x, height);
+    }
+    for (let y = 0; y <= height; y += 50) {
+      graphics.lineBetween(0, y, width, y);
+    }
+
+    // Lane - middle horizontal
+    graphics.lineStyle(60, 0x3a3a2a, 0.5);
+    graphics.lineBetween(50, centerY, width - 50, centerY);
+
+    // Blue base - left
+    graphics.fillStyle(0x1e3a5f, 0.3);
+    graphics.fillRect(20, 100, 150, 400);
+
+    // Red base - right
+    graphics.fillStyle(0x5f1e1e, 0.3);
+    graphics.fillRect(width - 170, 100, 150, 400);
+
+    // River
+    graphics.fillStyle(0x2a4a6a, 0.4);
+    graphics.beginPath();
+    graphics.moveTo(centerX - 100, 0);
+    graphics.lineTo(centerX + 100, 0);
+    graphics.lineTo(width, height);
+    graphics.lineTo(0, height);
+    graphics.closePath();
+    graphics.fill();
+
+    console.log('[GameScene] Small map drawn');
+  }
 
   private drawMap() {
     const graphics = this.add.graphics();
@@ -310,17 +356,33 @@ export default class GameScene extends Phaser.Scene {
   // ==========================================
 
   private createDemoEntities() {
-    const scale = 0.5;
+    // Use smaller map area for mobile visibility
+    const viewWidth = 800;
+    const viewHeight = 600;
+    const centerX = viewWidth / 2;
+    const centerY = viewHeight / 2;
 
-    // Create demo champions
+    // Create demo champions in center of screen
     const demoEntities: Partial<GameEntity>[] = [
-      { id: 'player', team: 'blue', type: 'champion', position: { x: MAP_CONFIG.BLUE_SPAWN.x, y: MAP_CONFIG.BLUE_SPAWN.y } },
-      { id: 'enemy1', team: 'red', type: 'champion', position: { x: MAP_CONFIG.RED_SPAWN.x, y: MAP_CONFIG.RED_SPAWN.y } },
-      { id: 'minion1', team: 'blue', type: 'minion', position: { x: 2000, y: 2000 } },
-      { id: 'minion2', team: 'blue', type: 'minion', position: { x: 2100, y: 2050 } },
-      { id: 'minion3', team: 'red', type: 'minion', position: { x: 12800, y: 12800 } },
-      { id: 'tower1', team: 'blue', type: 'tower', position: { x: 3450, y: 1050 } },
-      { id: 'tower2', team: 'red', type: 'tower', position: { x: 11420, y: 13820 } },
+      // Blue team - left side
+      { id: 'player', team: 'blue', type: 'champion', position: { x: centerX - 150, y: centerY } },
+      { id: 'ally1', team: 'blue', type: 'champion', position: { x: centerX - 200, y: centerY - 80 } },
+      { id: 'ally2', team: 'blue', type: 'champion', position: { x: centerX - 200, y: centerY + 80 } },
+      
+      // Red team - right side
+      { id: 'enemy1', team: 'red', type: 'champion', position: { x: centerX + 150, y: centerY } },
+      { id: 'enemy2', team: 'red', type: 'champion', position: { x: centerX + 200, y: centerY - 80 } },
+      { id: 'enemy3', team: 'red', type: 'champion', position: { x: centerX + 200, y: centerY + 80 } },
+      
+      // Minions in middle
+      { id: 'minion1', team: 'blue', type: 'minion', position: { x: centerX - 80, y: centerY - 30 } },
+      { id: 'minion2', team: 'blue', type: 'minion', position: { x: centerX - 60, y: centerY + 30 } },
+      { id: 'minion3', team: 'red', type: 'minion', position: { x: centerX + 80, y: centerY - 30 } },
+      { id: 'minion4', team: 'red', type: 'minion', position: { x: centerX + 60, y: centerY + 30 } },
+      
+      // Towers
+      { id: 'tower1', team: 'blue', type: 'tower', position: { x: centerX - 300, y: centerY } },
+      { id: 'tower2', team: 'red', type: 'tower', position: { x: centerX + 300, y: centerY } },
     ];
 
     for (const entity of demoEntities) {
@@ -328,40 +390,47 @@ export default class GameScene extends Phaser.Scene {
     }
 
     this.playerId = 'player';
+    console.log('[GameScene] Created', demoEntities.length, 'entities');
   }
 
   createEntity(entity: GameEntity) {
-    const scale = 0.5;
+    // Direct positioning without scale
     const container = this.add.container(
-      entity.position.x * scale,
-      entity.position.y * scale
+      entity.position.x,
+      entity.position.y
     );
 
     const isBlue = entity.team === 'blue';
     const baseColor = isBlue ? 0x1e3a5f : 0x5f1e1e;
     const accentColor = isBlue ? 0x3a8fff : 0xff3a3a;
 
-    let size = 30;
+    let size = 40; // Larger for mobile visibility
     let shape: Phaser.GameObjects.Shape;
 
     switch (entity.type) {
       case 'champion':
+        // Body
         shape = this.add.circle(0, 0, size, baseColor);
-        const ring = this.add.circle(0, 0, size + 3, accentColor, 0);
-        ring.setStrokeStyle(2, accentColor);
-        container.add([shape, ring]);
+        // Ring
+        const ring = this.add.circle(0, 0, size + 5, accentColor, 0);
+        ring.setStrokeStyle(4, accentColor);
+        // Health bar
+        const healthBar = this.add.rectangle(0, -size - 15, size * 2, 8, 0x00ff00);
+        healthBar.setStrokeStyle(1, 0xffffff, 0.5);
+        container.add([shape, ring, healthBar]);
         break;
 
       case 'minion':
-        shape = this.add.circle(0, 0, size * 0.5, baseColor);
+        size = 15;
+        shape = this.add.circle(0, 0, size, baseColor);
         container.add(shape);
         break;
 
       case 'tower':
-        size = 60;
+        size = 50;
         shape = this.add.polygon(0, 0, [0, -size, size * 0.7, size * 0.5, -size * 0.7, size * 0.5], baseColor);
-        const towerRing = this.add.circle(0, 0, size, accentColor, 0);
-        towerRing.setStrokeStyle(3, accentColor, 0.5);
+        const towerRing = this.add.circle(0, 0, size + 10, accentColor, 0);
+        towerRing.setStrokeStyle(4, accentColor, 0.7);
         container.add([shape, towerRing]);
         break;
 
@@ -369,6 +438,8 @@ export default class GameScene extends Phaser.Scene {
         shape = this.add.circle(0, 0, size, baseColor);
         container.add(shape);
     }
+
+    this.entities.set(entity.id, container);
 
     // Health bar
     const healthBg = this.add.graphics();
