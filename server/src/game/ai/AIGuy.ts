@@ -1,9 +1,9 @@
 /**
  * AIGuy - Bot player that makes decisions in game
  */
-import type { GameEntity, Vector2, TeamSide } from '../../../../shared/src/types/game';
+import type { GameEntity, Vector2, TeamSide } from '../../shared/src/types/game';
 import type { GameEngine } from '../engine/GameEngine';
-import { MAP_CONFIG } from '../../../../shared/src/constants/game';
+import { MAP_CONFIG } from '../../shared/src/constants/game';
 
 export class AIGuy {
   private id: string;
