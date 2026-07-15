@@ -1,0 +1,434 @@
+// ============================================
+// PRISMA SCHEMA - MOBA Arena (SQLite)
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  email         String    @unique
+  passwordHash  String
+  avatar        String    @default("/avatars/default.png")
+  role          String    @default("PLAYER")
+  level         Int       @default(1)
+  xp            Int       @default(0)
+  blueEssence   Int       @default(0)
+  rp            Int       @default(0)
+  rank          String    @default("UNRANKED")
+  rankLP        Int       @default(0)
+  rankDivision  Int       @default(4)
+  mmr           Int       @default(1000)
+  wins          Int       @default(0)
+  losses        Int       @default(0)
+  streakWins    Int       @default(0)
+  streakLosses  Int       @default(0)
+  lastRankedAt  DateTime?
+  totalKills    Int       @default(0)
+  totalDeaths   Int       @default(0)
+  totalAssists  Int       @default(0)
+  status        String    @default("OFFLINE")
+  lastSeen      DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+  isBanned      Boolean   @default(false)
+  banReason     String?
+
+  refreshTokens     RefreshToken[]
+  matchHistory      MatchPlayer[]
+  friends           Friend[]        @relation("UserFriends")
+  friendOf          Friend[]        @relation("FriendOf")
+  sentRequests      FriendRequest[] @relation("SentRequests")
+  receivedRequests  FriendRequest[] @relation("ReceivedRequests")
+  inventory         Inventory?
+  runePages         RunePage[]
+  purchases         Transaction[]
+  reports           Report[]        @relation("Reporter")
+  reportedBy        Report[]        @relation("Reported")
+  chatMessages      ChatMessage[]
+  championMasteries ChampionMastery[]
+  ownedChampions    UserChampion[]
+  ownedSkins       UserSkin[]
+  emotes           UserEmote[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  isRevoked Boolean  @default(false)
+
+  @@map("refresh_tokens")
+}
+
+model Friend {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation("UserFriends", fields: [userId], references: [id], onDelete: Cascade)
+  friendId   String
+  friend     User     @relation("FriendOf", fields: [friendId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, friendId])
+  @@map("friends")
+}
+
+model FriendRequest {
+  id         String   @id @default(cuid())
+  fromUserId String
+  fromUser   User     @relation("SentRequests", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId   String
+  toUser     User     @relation("ReceivedRequests", fields: [toUserId], references: [id], onDelete: Cascade)
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+
+  @@unique([fromUserId, toUserId])
+  @@map("friend_requests")
+}
+
+model Inventory {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blueEssence Int      @default(0)
+  rp          Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@map("inventories")
+}
+
+model UserChampion {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  championId String
+  champion   Champion  @relation(fields: [championId], references: [id])
+  isOwned    Boolean   @default(true)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, championId])
+  @@map("user_champions")
+}
+
+model UserSkin {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  championId String
+  champion   Champion @relation(fields: [championId], references: [id])
+  skinName  String
+  isOwned   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, championId, skinName])
+  @@map("user_skins")
+}
+
+model UserEmote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoteId   String
+  isOwned   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, emoteId])
+  @@map("user_emotes")
+}
+
+model Champion {
+  id               String   @id @default(cuid())
+  name             String   @unique
+  slug             String   @unique
+  title            String
+  lore             String
+  portrait         String
+  faction          String   @default("neutral")
+  roles            String
+  difficulty       Int      @default(2)
+  priceBlueEssence Int     @default(450)
+  priceRP          Int      @default(260)
+  isEnabled        Boolean  @default(true)
+  releaseDate      DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  stats       ChampionStats?
+  abilities   Ability[]
+  skins      Skin[]
+  masteries  ChampionMastery[]
+  userChampions UserChampion[]
+  ownedSkins UserSkin[]
+
+  @@map("champions")
+}
+
+model ChampionStats {
+  id             String  @id @default(cuid())
+  championId     String  @unique
+  champion       Champion @relation(fields: [championId], references: [id], onDelete: Cascade)
+
+  health         Int     @default(600)
+  healthPerLevel Int    @default(85)
+  mana           Int     @default(400)
+  manaPerLevel   Int     @default(45)
+  armor          Int     @default(30)
+  armorPerLevel Float   @default(3.5)
+  mr             Float   @default(30)
+  mrPerLevel     Float   @default(1.5)
+  moveSpeed      Int     @default(345)
+  attackRange    Int     @default(150)
+  ad             Int     @default(60)
+  adPerLevel     Float   @default(3)
+  attackSpeed    Float   @default(0.625)
+  asPerLevel     Float   @default(2.5)
+  critChance     Float   @default(0)
+  critDamage     Float   @default(1.75)
+
+  @@map("champion_stats")
+}
+
+model Ability {
+  id          String  @id @default(cuid())
+  championId  String
+  champion    Champion @relation(fields: [championId], references: [id], onDelete: Cascade)
+  key         String
+  name        String
+  description String
+  icon        String
+  cooldown    Float   @default(0)
+  cost        Float   @default(0)
+  costType    String  @default("mana")
+  range       Float   @default(0)
+  targeting   String  @default("self")
+  castTime    Float   @default(0)
+  data        String?
+
+  @@unique([championId, key])
+  @@map("abilities")
+}
+
+model Skin {
+  id               String   @id @default(cuid())
+  championId       String
+  champion         Champion @relation(fields: [championId], references: [id], onDelete: Cascade)
+  name             String
+  description      String
+  splash           String
+  icon             String
+  tier             String   @default("standard")
+  priceBlueEssence Int      @default(0)
+  priceRP          Int      @default(0)
+  isDefault        Boolean  @default(false)
+  effects         String?
+  createdAt        DateTime @default(now())
+
+  @@unique([championId, name])
+  @@map("skins")
+}
+
+model ChampionMastery {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  championId     String
+  champion       Champion  @relation(fields: [championId], references: [id])
+  points         Int       @default(0)
+  level          Int       @default(1)
+  chestGranted   Boolean   @default(false)
+  lastPlayed     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, championId])
+  @@map("champion_masteries")
+}
+
+model RunePage {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  primaryTree String
+  keystoneId  String
+  runes       String
+  shards      String
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("rune_pages")
+}
+
+model Rune {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slot        String
+  tree        String
+  description String
+  icon        String
+  stats       String
+  isEnabled   Boolean @default(true)
+
+  @@map("runes")
+}
+
+model Match {
+  id        String    @id @default(cuid())
+  gameId    String?   @unique
+  gameMode  String    @default("classic")
+  queueType String    @default("normal")
+  map       String    @default("summoners_rift")
+  status    String    @default("PENDING")
+  createdAt DateTime  @default(now())
+  startedAt DateTime?
+  endedAt   DateTime?
+  duration  Int       @default(0)
+  winner    String?
+  hostId    String?
+  players   MatchPlayer[]
+
+  @@map("matches")
+}
+
+model MatchPlayer {
+  id             String  @id @default(cuid())
+  matchId        String
+  match          Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User    @relation(fields: [userId], references: [id])
+  championId     String
+  team           String
+  role           String
+  summonerSpells String
+  runePage       String?
+  skinId         String?
+
+  kills         Int @default(0)
+  deaths        Int @default(0)
+  assists       Int @default(0)
+  damageDealt   Int @default(0)
+  damageTaken   Int @default(0)
+  healing       Int @default(0)
+  cs            Int @default(0)
+  visionScore   Int @default(0)
+  goldEarned    Int @default(0)
+  wardsPlaced   Int @default(0)
+  wardsDestroyed Int @default(0)
+  level         Int @default(1)
+  items         String @default("[]")
+  grade         String @default("D")
+
+  @@unique([matchId, userId])
+  @@map("match_players")
+}
+
+model ChatChannel {
+  id          String   @id @default(cuid())
+  type        String   @default("global")
+  name        String   @unique
+  description String   @default("")
+  isPrivate   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("chat_channels")
+}
+
+model ChatMessage {
+  id         String   @id @default(cuid())
+  channelId  String
+  senderId   String
+  sender     User     @relation(fields: [senderId], references: [id])
+  content    String
+  type       String   @default("text")
+  replyTo    String?
+  isDeleted  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([channelId, createdAt])
+  @@map("chat_messages")
+}
+
+model Transaction {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  itemId           String
+  itemType         String
+  priceBlueEssence Int      @default(0)
+  priceRP          Int      @default(0)
+  status           String   @default("completed")
+  createdAt        DateTime @default(now())
+
+  @@map("transactions")
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  reporterId  String
+  reporter    User     @relation("Reporter", fields: [reporterId], references: [id])
+  reportedId String
+  reported   User     @relation("Reported", fields: [reportedId], references: [id])
+  reason     String
+  description String
+  matchId    String?
+  type       String   @default("TOXICITY")
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+
+  @@map("reports")
+}
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  adminId  String
+  action   String
+  targetId String?
+  details  String?
+  createdAt DateTime @default(now())
+
+  @@map("admin_logs")
+}
+
+model Clan {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  tag          String   @unique
+  description  String
+  avatar       String
+  banner       String
+  level        Int      @default(1)
+  leaderId    String   @unique
+  memberCount Int      @default(1)
+  maxMembers  Int      @default(20)
+  isRecruiting Boolean @default(true)
+  requiredRank String  @default("UNRANKED")
+  createdAt   DateTime @default(now())
+
+  @@map("clans")
+}
+
+model ClanMember {
+  id                 String   @id @default(cuid())
+  clanId             String
+  userId             String   @unique
+  role               String   @default("MEMBER")
+  contribution       Int      @default(0)
+  weeklyContribution Int      @default(0)
+  joinedAt           DateTime @default(now())
+
+  @@unique([clanId, userId])
+  @@map("clan_members")
+}
