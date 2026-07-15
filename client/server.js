@@ -14,11 +14,28 @@ const mimeTypes = {
   '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
 };
 
 const server = http.createServer((req, res) => {
-  let filePath = path.join(distPath, req.url === '/' ? 'index.html' : req.url);
+  // Skip API routes - let them 404
+  if (req.url && req.url.startsWith('/api')) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'API not available on client port' }));
+    return;
+  }
   
+  // Skip socket.io routes
+  if (req.url && req.url.startsWith('/socket.io')) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Socket not available on client port' }));
+    return;
+  }
+  
+  let filePath = path.join(distPath, req.url === '/' ? 'index.html' : req.url.split('?')[0]);
+  
+  // Check if file exists, otherwise serve index.html (SPA fallback)
   if (!fs.existsSync(filePath)) {
     filePath = path.join(distPath, 'index.html');
   }
