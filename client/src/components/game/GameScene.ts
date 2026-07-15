@@ -23,18 +23,36 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
+    console.log('[GameScene] Creating game scene');
+    
     this.socket = (this.game as any).__socket;
     this.gameId = (this.game as any).__gameId;
-    this.playerId = this.socket?.auth?.token ? 'player' : 'demo';
+    console.log('[GameScene] Socket:', !!this.socket, 'GameId:', this.gameId);
+    
+    this.playerId = 'player';
 
     this.camera = this.cameras.main;
-    this.camera.setBackgroundColor('#0a0e17');
+    this.camera.setBackgroundColor('#1a2a1a');
+    this.camera.setZoom(0.5);
+    this.camera.centerOn(MAP_CONFIG.centerX * 0.5, MAP_CONFIG.centerY * 0.5);
+    console.log('[GameScene] Camera setup done');
 
     this.drawMap();
+    console.log('[GameScene] Map drawn');
+    
     this.createMinimap();
     this.setupInput();
     this.setupSocketListeners();
     this.createDemoEntities();
+    console.log('[GameScene] Demo entities created');
+    
+    // Hide loading after short delay
+    setTimeout(() => {
+      const loadingOverlay = document.querySelector('.fixed.inset-0.bg-game-darker\/90');
+      if (loadingOverlay) {
+        loadingOverlay.classList.add('hidden');
+      }
+    }, 2000);
   }
 
   // ==========================================

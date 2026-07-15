@@ -14,6 +14,15 @@ export default function GamePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Safety timeout - hide loading after 5 seconds
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      console.log('[GamePage] Safety timeout - hiding loading');
+      setLoading(false);
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, []);
+
   useEffect(() => {
     if (!gameId || !isConnected || !socket) return;
 
