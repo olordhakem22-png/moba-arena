@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "npm run build && node server.js",
+    "dev": "node server.js",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "start": "node server.js",
