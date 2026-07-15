@@ -17,7 +17,7 @@ import PlayPage from './components/pages/PlayPage.jsx';
 import ProfilePage from './components/pages/ProfilePage.jsx';
 import StorePage from './components/pages/StorePage.jsx';
 import LobbyPage from './components/pages/LobbyPage.jsx';
-import GamePage from './components/pages/GamePage.jsx';
+import GamePage from './components/game/FullGameScene.tsx';
 import AdminPage from './components/pages/AdminPage.jsx';
 import NotFoundPage from './components/pages/NotFoundPage.jsx';
 
