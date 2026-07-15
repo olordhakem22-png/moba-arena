@@ -3,6 +3,9 @@ import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from './authStore.js';
 import toast from 'react-hot-toast';
 
+// Socket.IO server URL
+const SOCKET_URL = 'https://api-server-production-633b.up.railway.app';
+
 export const useSocketStore = create<{
   socket: Socket | null;
   isConnected: boolean;
@@ -17,7 +20,7 @@ export const useSocketStore = create<{
     const { accessToken } = useAuthStore.getState();
     if (!accessToken || get().socket?.connected) return;
 
-    const socket = io({
+    const socket = io(SOCKET_URL, {
       auth: { token: accessToken },
       transports: ['websocket', 'polling'],
       reconnection: true,

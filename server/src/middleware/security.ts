@@ -26,7 +26,8 @@ export function securityMiddleware(app: Express) {
         connectSrc: ["'self'", 
           `ws://localhost:${config.port}`, `http://localhost:${config.port}`,
           'https://api-server-production-633b.up.railway.app',
-          'wss://api-server-production-633b.up.railway.app'
+          'wss://api-server-production-633b.up.railway.app',
+          'https://client-production-1614.up.railway.app'
         ],
         frameSrc: ["'none'"],
       },
