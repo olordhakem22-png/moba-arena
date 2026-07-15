@@ -2,9 +2,11 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files
+# Copy server files
 COPY package*.json ./
+COPY tsconfig.json ./
 COPY prisma ./prisma/
+COPY src ./src/
 
 # Install dependencies
 RUN npm install
@@ -13,14 +15,11 @@ RUN npm install
 RUN npx prisma generate
 RUN npx prisma db push
 
-# Copy source code
-COPY . .
-
 # Build TypeScript
 RUN npx tsc
 
-# Move dist to correct location
-RUN mkdir -p dist/server-dist && mv dist/server/src/* dist/server-dist/ || mv dist/* dist/server-dist/ 2>/dev/null || true
+# Create correct dist structure
+RUN mkdir -p dist/server-dist && cp -r dist/src/* dist/server-dist/ 2>/dev/null || mv dist/src dist/server-dist
 
 EXPOSE 4000
 
