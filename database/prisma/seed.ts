@@ -1,7 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import * as dotenv from 'dotenv';
-dotenv.config({ path: '../../.env' });
+// Only load .env if DATABASE_URL is not already set (e.g., in Docker/production)
+if (!process.env.DATABASE_URL) {
+  dotenv.config({ path: '../../.env' });
+}
 
 const prisma = new PrismaClient();
 
