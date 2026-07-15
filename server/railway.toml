@@ -1,0 +1,9 @@
+[railway]
+  builder = "nixpacks"
+  
+[build]
+  builder = "nixpacks"
+  
+[nixpacks]
+  buildCommand = "npm install && cp -r ../database/prisma ./prisma && npx prisma generate"
+  startCommand = "npx prisma db push && npx tsx src/index.ts"
