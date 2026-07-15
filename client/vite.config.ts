@@ -35,4 +35,7 @@ export default defineConfig({
       },
     },
   },
+  define: {
+    __CACHE_BUST__: JSON.stringify(Date.now().toString(36)),
+  },
 });
