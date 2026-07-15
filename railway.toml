@@ -1,0 +1,9 @@
+[server]
+dockerfile = "Dockerfile.server"
+healthcheck = "/health"
+restart = "always"
+
+[server.variables]
+DATABASE_URL = { fromDatabase = { name = "moba-db", type = "postgres" } }
+JWT_SECRET = "moba-super-secret-key-2024"
+NODE_ENV = "production"
