@@ -1,8 +1,8 @@
 /**
  * Physics - Pathfinding, collision, movement
  */
-import type { GameEntity, Vector2 } from '../../../shared/src/types/game';
-import { MAP_CONFIG, GAME_CONSTANTS } from '../../../shared/src/constants/game';
+import type { GameEntity, Vector2 } from '@shared/types/game';
+import { MAP_CONFIG, GAME_CONSTANTS } from '@shared/constants/game';
 import type { GameEngine } from '../engine/GameEngine';
 
 export class Physics {

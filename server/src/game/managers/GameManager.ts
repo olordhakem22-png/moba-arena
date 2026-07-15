@@ -4,11 +4,12 @@
 import { v4 as uuid } from 'uuid';
 import { GameEngine } from '../engine/GameEngine';
 import { logger } from '../../utils/logger';
-import type { TeamSide } from '../../../shared/src/types/game';
+import type { TeamSide } from '@shared/types/game';
 
 export class GameManager {
   private games: Map<string, GameEngine> = new Map();
   private playerGames: Map<string, string> = new Map(); // playerId -> gameId
+  private disconnectedPlayers: Set<string> = new Set();
 
   createGame(
     players: { userId: string; team: TeamSide; championId: string; slot: number }[],
@@ -24,8 +25,16 @@ export class GameManager {
 
     this.games.set(gameId, game);
 
+    // Clean up when game ends
+    game.on('gameDestroyed', (id: string) => {
+      this.games.delete(id);
+      logger.info(`🗑️ Game ${id} destroyed`);
+    });
+
+    // Set up state broadcasting
     game.on('stateUpdate', (state) => {
       // Broadcast to all players in game
+      // This is handled by the socket layer
     });
 
     game.on('gameEnded', async (result) => {
@@ -55,25 +64,85 @@ export class GameManager {
       const game = this.games.get(gameId);
       if (game) {
         game.emit('playerDisconnected', playerId);
+        this.disconnectedPlayers.add(playerId);
       }
     }
     this.playerGames.delete(playerId);
+  }
+
+  markPlayerDisconnected(playerId: string): void {
+    this.disconnectedPlayers.add(playerId);
+    const gameId = this.playerGames.get(playerId);
+    if (gameId) {
+      const game = this.games.get(gameId);
+      if (game) {
+        game.emit('playerDisconnected', playerId);
+        
+        // In a full implementation, AI would take over for this player
+        // For now, just mark as disconnected
+        logger.info(`Player ${playerId} marked as disconnected`);
+      }
+    }
+  }
+
+  reconnectPlayer(playerId: string, socketId: string): boolean {
+    if (!this.disconnectedPlayers.has(playerId)) {
+      return false;
+    }
+
+    const gameId = this.playerGames.get(playerId);
+    if (!gameId) {
+      return false;
+    }
+
+    const game = this.games.get(gameId);
+    if (!game) {
+      return false;
+    }
+
+    this.disconnectedPlayers.delete(playerId);
+    game.emit('playerReconnected', { playerId, socketId });
+    logger.info(`Player ${playerId} reconnected`);
+    return true;
   }
 
   private async handleGameEnd(gameId: string, result: { winner: TeamSide; duration: number }): Promise<void> {
     const game = this.games.get(gameId);
     if (!game) return;
 
-    // Clean up after delay
+    // Store game result for post-game screen
+    const gameResult = {
+      id: gameId,
+      winner: result.winner,
+      duration: result.duration,
+      state: game.getSnapshot(),
+    };
+
+    logger.info(`Game ${gameId} ended: ${result.winner} wins in ${result.duration.toFixed(0)}s`);
+
+    // Clean up after delay for post-game screen
     setTimeout(() => {
-      this.games.delete(gameId);
-      for (const [playerId, gId] of this.playerGames) {
-        if (gId === gameId) {
-          this.playerGames.delete(playerId);
-        }
+      this.cleanupGame(gameId);
+    }, 60000);
+  }
+
+  private cleanupGame(gameId: string): void {
+    const game = this.games.get(gameId);
+    if (!game) return;
+
+    // Remove all players from mapping
+    for (const [playerId, gId] of this.playerGames) {
+      if (gId === gameId) {
+        this.playerGames.delete(playerId);
+        this.disconnectedPlayers.delete(playerId);
       }
-      logger.info(`🗑️ Game ${gameId} cleaned up`);
-    }, 60000); // Keep game data for 1 minute for post-game screen
+    }
+
+    // Destroy game
+    game.destroy();
+    this.games.delete(gameId);
+
+    logger.info(`🗑️ Game ${gameId} cleaned up`);
   }
 
   getActiveGameCount(): number {
@@ -82,6 +151,23 @@ export class GameManager {
 
   getActivePlayerCount(): number {
     return this.playerGames.size;
+  }
+
+  getGameList(): { id: string; playerCount: number; phase: string; time: number }[] {
+    const list: { id: string; playerCount: number; phase: string; time: number }[] = [];
+    
+    for (const [id, game] of this.games) {
+      list.push({
+        id,
+        playerCount: Object.keys(game.state.entities).filter(
+          e => game.state.entities[e]?.type === 'champion'
+        ).length,
+        phase: game.state.phase,
+        time: game.state.time,
+      });
+    }
+    
+    return list;
   }
 
   // ==========================================
@@ -109,18 +195,18 @@ export class GameManager {
   }
 
   private isQueueFull(): boolean {
-    return this.queue.blue.length >= 5;
+    return this.queue.blue.length >= 2;
   }
 
   private startMatch(): void {
-    const players = this.queue.blue.splice(0, 10);
+    const players = this.queue.blue.splice(0, 2);
 
     // Assign teams
     const gamePlayers = players.map((p, i) => ({
       userId: p.userId,
-      team: (i < 5 ? 'blue' : 'red') as TeamSide,
+      team: (i < 1 ? 'blue' : 'red') as TeamSide,
       championId: p.championId || 'lux',
-      slot: i % 5,
+      slot: i,
     }));
 
     const game = this.createGame(gamePlayers, 'ranked');

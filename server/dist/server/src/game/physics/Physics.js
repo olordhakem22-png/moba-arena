@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Physics = void 0;
-const game_1 = require("../../../shared/src/constants/game");
+const game_1 = require("@shared/constants/game");
 class Physics {
     engine;
     constructor(engine) {

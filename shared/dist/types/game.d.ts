@@ -146,6 +146,9 @@ export interface EntityCurrent {
     assistCount: number;
 }
 export interface ComputedStats extends ChampionStats {
+    currentHealth: number;
+    currentMana: number;
+    currentEnergy: number;
     currentAttackSpeed: number;
     currentRange: number;
     currentMoveSpeed: number;
@@ -166,7 +169,7 @@ export interface EntityState {
     duration: number;
     source?: string;
 }
-export type StateType = 'dead' | 'stunned' | 'rooted' | 'silenced' | 'sleeping' | 'feared' | 'charmed' | 'invisible' | 'untargetable' | 'invulnerable' | 'recalling' | 'teleporting';
+export type StateType = 'dead' | 'stunned' | 'rooted' | 'silenced' | 'sleeping' | 'feared' | 'charmed' | 'invisible' | 'untargetable' | 'invulnerable' | 'recalling' | 'teleporting' | 'channeling';
 export interface Buff {
     id: string;
     name: string;

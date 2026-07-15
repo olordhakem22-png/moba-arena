@@ -66,7 +66,7 @@ export interface AbilityEffect {
     value?: number;
     damageType?: 'physical' | 'magic' | 'true';
 }
-export type EffectType = 'damage' | 'heal' | 'shield' | 'speed' | 'slow' | 'stun' | 'root' | 'silence' | 'knockback' | 'dash' | 'teleport' | 'summon' | 'buff' | 'debuff' | 'execute';
+export type EffectType = 'damage' | 'heal' | 'shield' | 'speed' | 'slow' | 'stun' | 'root' | 'silence' | 'knockback' | 'dash' | 'teleport' | 'summon' | 'buff' | 'debuff' | 'execute' | 'charm' | 'fear';
 export type TargetingType = 'self' | 'unit' | 'area' | 'line' | 'cone' | 'global' | 'auto';
 export interface AbilityUpgrade {
     level: number;
@@ -118,7 +118,7 @@ export interface RuneTree {
 }
 export type RuneSlot = 'keystone' | 'tier1' | 'tier2' | 'tier3';
 export type RuneShard = Rune;
-export type Role = 'top' | 'jungle' | 'mid' | 'adc' | 'support';
+export type Role = 'top' | 'jungle' | 'mid' | 'adc' | 'support' | 'fill';
 export type Faction = 'order' | 'chaos' | 'neutral';
 export type Difficulty = 1 | 2 | 3;
 //# sourceMappingURL=champion.d.ts.map

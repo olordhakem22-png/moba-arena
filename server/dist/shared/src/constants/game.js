@@ -206,7 +206,7 @@ exports.RANK_THRESHOLDS = [
     { rank: 'Challenger', mmr: 6000, lp: 0 },
 ];
 exports.RANK_DIVISIONS = [1, 2, 3, 4];
-exports.GAME_SERVER_URL = process.env.GAME_SERVER_URL || 'http://localhost:4000';
-exports.GAME_WS_URL = process.env.GAME_WS_URL || 'ws://localhost:4000';
-exports.API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:4000/api';
+exports.GAME_SERVER_URL = (typeof process !== 'undefined' && process.env?.GAME_SERVER_URL) || 'https://api-server-production-633b.up.railway.app';
+exports.GAME_WS_URL = (typeof process !== 'undefined' && process.env?.GAME_WS_URL) || 'wss://api-server-production-633b.up.railway.app';
+exports.API_BASE_URL = (typeof process !== 'undefined' && process.env?.API_BASE_URL) || 'https://api-server-production-633b.up.railway.app/api';
 //# sourceMappingURL=game.js.map

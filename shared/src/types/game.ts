@@ -188,6 +188,9 @@ export interface EntityCurrent {
 }
 
 export interface ComputedStats extends ChampionStats {
+  currentHealth: number;
+  currentMana: number;
+  currentEnergy: number;
   currentAttackSpeed: number;
   currentRange: number;
   currentMoveSpeed: number;
@@ -222,7 +225,8 @@ export type StateType =
   | 'untargetable'
   | 'invulnerable'
   | 'recalling'
-  | 'teleporting';
+  | 'teleporting'
+  | 'channeling';
 
 export interface Buff {
   id: string;

@@ -1,5 +1,6 @@
 /**
  * Socket.IO - Real-time game communication
+ * Handles all game events, state broadcasting, and player inputs
  */
 import { Server as HTTPServer } from 'http';
 import { Server, Socket } from 'socket.io';
@@ -8,7 +9,8 @@ import { config } from '../config/index';
 import { gameManager } from '../game/managers/GameManager';
 import { logger } from '../utils/logger';
 import type { TokenPayload } from '../../../shared/src/types/user';
-import type { PlayerInput, Vector2 } from '../../../shared/src/types/game';
+import type { PlayerInput, Vector2, GameEntity, GameState } from '../../../shared/src/types/game';
+import { GAME_CONSTANTS } from '../../../shared/src/constants/game';
 
 export function setupSocketIO(httpServer: HTTPServer) {
   const io = new Server(httpServer, {
@@ -35,15 +37,17 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
   // --- Connection ---
   io.on('connection', (socket: AuthenticatedSocket) => {
-    logger.info(`🔌 Player connected: ${socket.user.username} (${socket.id})`);
+    const userId = socket.user.userId;
+    logger.info(`🔌 Player connected: ${socket.user.username} (${userId})`);
 
     // Join user's personal room
-    socket.join(`user:${socket.user.userId}`);
+    socket.join(`user:${userId}`);
 
     // --- LOBBY ---
     socket.on('lobby:join', () => {
       socket.join('lobby');
       socket.emit('lobby:joined', { message: 'Welcome to lobby' });
+      logger.debug(`Player ${userId} joined lobby`);
     });
 
     socket.on('lobby:leave', () => {
@@ -57,27 +61,40 @@ export function setupSocketIO(httpServer: HTTPServer) {
 
       // DEBUG: Auto-create game for testing (in production, implement real matchmaking)
       setTimeout(() => {
-        const players = [{
-          userId: socket.user.userId,
-          team: 'blue' as const,
-          championId: data.championId,
-          slot: 1,
-        }];
+        // Find players in queue or create with bots
+        const players: { userId: string; team: 'blue' | 'red'; championId: string; slot: number }[] = [
+          {
+            userId,
+            team: 'blue',
+            championId: data.championId,
+            slot: 1,
+          }
+        ];
+
+        // Add bot opponents
+        const botChampions = ['garen', 'lux', 'jinx', 'ahri', 'yasuo'];
+        for (let i = 0; i < 4; i++) {
+          players.push({
+            userId: `bot-red-${i + 1}`,
+            team: 'red',
+            championId: botChampions[i],
+            slot: i + 2,
+          });
+        }
 
         const game = gameManager.createGame(players, data.queueType as 'classic' | 'ranked' | 'custom');
         const gameId = game.id;
 
-        // Add bot opponent for non-ranked
-        if (data.queueType !== 'ranked') {
-          // TODO: Add bot player
-        }
+        // Set up game event forwarding
+        setupGameEventForwarding(io, game, gameId);
 
         io.to('matchmaking').emit('queue:matched', { gameId });
-      }, 3000); // Start game after 3 seconds
+        logger.info(`🎮 Match created: ${gameId}`);
+      }, 2000);
     });
 
     socket.on('queue:cancel', () => {
-      gameManager.removeFromQueue(socket.user.userId);
+      gameManager.removeFromQueue(userId);
       socket.leave('matchmaking');
       socket.emit('queue:cancelled');
     });
@@ -91,112 +108,179 @@ export function setupSocketIO(httpServer: HTTPServer) {
       }
 
       socket.join(`game:${data.gameId}`);
-      socket.join(`game:${data.gameId}:${socket.user.userId}`);
+      socket.join(`game:${data.gameId}:${userId}`);
+
+      // Set up game state forwarding for this socket
+      game.on('stateUpdate', (state: GameState) => {
+        socket.emit('game:state', state);
+      });
+
+      game.on('phaseChange', (data: { from: string; to: string }) => {
+        socket.emit('game:phaseChange', data);
+      });
+
+      game.on('kill', (data: any) => {
+        io.to(`game:${data.gameId}`).emit('game:kill', data);
+      });
+
+      game.on('abilityUsed', (data: any) => {
+        socket.to(`game:${data.gameId}`).emit('game:ability', data);
+      });
+
+      game.on('damage', (data: any) => {
+        socket.to(`game:${data.gameId}`).emit('game:damage', data);
+      });
+
+      game.on('levelUp', (data: any) => {
+        io.to(`game:${data.gameId}`).emit('game:levelUp', data);
+      });
+
+      game.on('towerDestroyed', (data: any) => {
+        io.to(`game:${data.gameId}`).emit('game:towerDestroyed', data);
+      });
+
+      game.on('gameEnded', (data: any) => {
+        io.to(`game:${data.gameId}`).emit('game:ended', data);
+      });
+
+      game.on('ping', (data: any) => {
+        socket.to(`game:${data.gameId}`).emit('game:ping', data);
+      });
 
       socket.emit('game:joined', {
         gameId: data.gameId,
         phase: game.state.phase,
+        time: game.state.time,
         entities: Object.keys(game.state.entities),
       });
+
+      logger.info(`Player ${userId} joined game ${data.gameId}`);
     });
 
     socket.on('game:ready', () => {
-      socket.emit('game:loading');
+      const game = gameManager.getGameByPlayer(userId);
+      if (game) {
+        game.emit('playerReady', userId);
+      }
     });
 
-    // Player input
+    // Player input handling
     socket.on('game:input', (data: InputPacket) => {
-      const game = gameManager.getGameByPlayer(socket.user.userId);
+      const game = gameManager.getGameByPlayer(userId);
       if (!game) return;
 
-      game.emit('playerInput', {
-        playerId: socket.user.userId,
-        input: data,
-        timestamp: Date.now(),
-      });
+      // Validate and process input
+      handlePlayerInput(game, userId, data);
+    });
 
-      handlePlayerInput(game, socket.user.userId, data);
+    // Shop
+    socket.on('game:buyItem', (data: { itemId: string; slot: number }) => {
+      const game = gameManager.getGameByPlayer(userId);
+      if (!game) return;
+
+      const success = game.items.purchaseItem(userId, data.itemId);
+      socket.emit('game:itemResult', { success, itemId: data.itemId, slot: data.slot });
+    });
+
+    socket.on('game:sellItem', (data: { slot: number }) => {
+      const game = gameManager.getGameByPlayer(userId);
+      if (!game) return;
+
+      const success = game.items.sellItem(userId, data.slot);
+      socket.emit('game:itemResult', { success, action: 'sell', slot: data.slot });
+    });
+
+    // Ability leveling
+    socket.on('game:levelAbility', (data: { ability: 'Q' | 'W' | 'E' | 'R' }) => {
+      const game = gameManager.getGameByPlayer(userId);
+      if (!game) return;
+
+      game.levelUpAbility(userId, data.ability);
     });
 
     // Chat
     socket.on('game:chat', (data: { message: string }) => {
-      const gameId = gameManager.getPlayerGameId(socket.user.userId);
+      const gameId = gameManager.getPlayerGameId(userId);
       if (!gameId) return;
 
+      // Sanitize message
+      const sanitizedMessage = data.message.slice(0, 200);
+
       io.to(`game:${gameId}`).emit('game:chat', {
-        senderId: socket.user.userId,
+        senderId: userId,
         senderName: socket.user.username,
-        message: data.message,
+        message: sanitizedMessage,
         timestamp: Date.now(),
       });
     });
 
-    socket.on('game:ping', (data: { targetId: string; position: Vector2; type: string }) => {
-      const gameId = gameManager.getPlayerGameId(socket.user.userId);
+    // Pings
+    socket.on('game:ping', (data: { x: number; y: number; type: string; targetId?: string }) => {
+      const gameId = gameManager.getPlayerGameId(userId);
       if (!gameId) return;
 
       socket.to(`game:${gameId}`).emit('game:ping', {
-        entityId: socket.user.userId,
-        ...data,
+        entityId: userId,
+        x: data.x,
+        y: data.y,
+        type: data.type,
+        targetId: data.targetId,
       });
     });
 
+    // Emotes
     socket.on('game:emote', (data: { emoteId: string }) => {
-      const gameId = gameManager.getPlayerGameId(socket.user.userId);
+      const gameId = gameManager.getPlayerGameId(userId);
       if (!gameId) return;
 
       io.to(`game:${gameId}`).emit('game:emote', {
-        entityId: socket.user.userId,
+        entityId: userId,
         emoteId: data.emoteId,
       });
     });
 
     // Surrender
     socket.on('game:surrender', () => {
-      const game = gameManager.getGameByPlayer(socket.user.userId);
+      const game = gameManager.getGameByPlayer(userId);
       if (!game) return;
-      game.initiateSurrenderVote(socket.user.userId);
+      game.initiateSurrenderVote(userId);
     });
 
     socket.on('game:surrenderVote', (data: { vote: boolean }) => {
-      const game = gameManager.getGameByPlayer(socket.user.userId);
+      const game = gameManager.getGameByPlayer(userId);
       if (!game) return;
-      game.voteSurrender(socket.user.userId, data.vote);
+      game.voteSurrender(userId, data.vote);
     });
 
-    // --- SPECTATOR ---
+    // Spectator
     socket.on('spectate:join', (data: { matchId: string }) => {
       socket.join(`spectate:${data.matchId}`);
       socket.emit('spectate:joined', { matchId: data.matchId });
-    });
 
-    socket.on('spectate:camera', (data: { x: number; y: number; zoom: number }) => {
-      const gameId = gameManager.getPlayerGameId(socket.user.userId);
-      if (!gameId) return;
-      socket.to(`spectate:${gameId}`).emit('spectate:camera', {
-        viewerId: socket.user.userId,
-        ...data,
-      });
-    });
-
-    // --- FRIENDS ---
-    socket.on('friends:status', (data: { status: string }) => {
-      socket.broadcast.emit('friends:statusChange', {
-        userId: socket.user.userId,
-        status: data.status,
-      });
+      const game = gameManager.getGame(data.matchId);
+      if (game) {
+        game.on('stateUpdate', (state: GameState) => {
+          socket.emit('game:state', state);
+        });
+      }
     });
 
     // --- DISCONNECT ---
     socket.on('disconnect', () => {
       logger.info(`🔌 Player disconnected: ${socket.user.username}`);
-      gameManager.removePlayer(socket.user.userId);
+
+      // Mark player as disconnected (AI takes over in real implementation)
+      gameManager.markPlayerDisconnected(userId);
+    });
+
+    // --- FRIENDS ---
+    socket.on('friends:status', (data: { status: string }) => {
+      socket.broadcast.emit('friends:statusChange', {
+        userId,
+        status: data.status,
+      });
     });
   });
-
-  // --- GAME STATE BROADCASTING ---
-  // Game engines emit state updates, we broadcast to relevant rooms
-  setupGameBroadcasting(io);
 
   return io;
 }
@@ -245,16 +329,63 @@ function handlePlayerInput(
       game.ping(
         playerId,
         { x: input.data.x, y: input.data.y },
-        input.data.pingType,
+        input.data.pingType || 'onMyWay',
         input.data.targetId
       );
+      break;
+
+    case 'levelAbility':
+      game.levelUpAbility(playerId, input.data.ability);
       break;
   }
 }
 
-function setupGameBroadcasting(io: Server) {
-  // This would integrate with the game manager's event system
-  // to broadcast state updates to all players in a game
+// ==========================================
+// GAME EVENT FORWARDING
+// ==========================================
+
+function setupGameEventForwarding(io: Server, game: any, gameId: string) {
+  // Forward key game events to all players in the game room
+  const forwardEvents = [
+    'championSpawned',
+    'minionWaveSpawned',
+    'towerSpawned',
+    'towerAttack',
+    'towerDestroyed',
+    'towerPlatingDestroyed',
+    'objectiveKilled',
+    'objectiveSpawned',
+    'itemPurchased',
+    'recallStarted',
+    'recallCancelled',
+    'entityRespawned',
+    'heal',
+    'shieldApplied',
+    'ccApplied',
+    'autoAttack',
+    'minionAttack',
+    'moveOrder',
+    'attackOrder',
+    'stopOrder',
+    'surrenderVoteStarted',
+    'surrenderVote',
+    'surrenderVoteEnded',
+    'abilityLevelUp',
+    'abilityFailed',
+    'playerReady',
+    'playerDisconnected',
+  ];
+
+  for (const eventName of forwardEvents) {
+    game.on(eventName, (data: any) => {
+      io.to(`game:${gameId}`).emit(`game:${eventName}`, data);
+    });
+  }
+
+  // Special handling for game events
+  game.on('gameEvent', (event: any) => {
+    io.to(`game:${gameId}`).emit('game:event', event);
+  });
 }
 
 // ==========================================
@@ -266,7 +397,7 @@ interface AuthenticatedSocket extends Socket {
 }
 
 interface InputPacket {
-  type: 'move' | 'attack' | 'ability' | 'recall' | 'stop' | 'ping' | 'emote';
+  type: 'move' | 'attack' | 'ability' | 'recall' | 'stop' | 'ping' | 'levelAbility';
   data: Record<string, any>;
   timestamp: number;
 }
